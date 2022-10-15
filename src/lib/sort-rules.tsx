@@ -1,12 +1,13 @@
-import { Rem } from '@remnote/plugin-sdk';
+import { Rem, RemType, RNPlugin, usePlugin } from '@remnote/plugin-sdk';
 
 export const parseSortRule = (sortRuleString: string) => {
-  return sortRuleString.split(';')
-    .map(r => r.match(/([^+-]+)([+-]?)/))
+  return sortRuleString.split(',')
+    .map(r => r.match(/([^()+-]+)(?:\((\w+)\))?([+-]?)/))
     .flatMap(match => {
       return match && match[1] ? {
         byWhat: match[1],
-        desc: match[2] == '-'
+        desc: match[3] == '-',
+        arg: match[2],
       } : [];
     })
 }
@@ -14,7 +15,8 @@ export const parseSortRule = (sortRuleString: string) => {
 export type SortRuleExecutor = (
   rems: Rem[],
   desc: boolean,
-  args?: string
+  arg: string,
+  plugin: RNPlugin,
 ) => Rem[] | Promise<Rem[]>;
 
 const sortByStatus: SortRuleExecutor = async (
@@ -31,6 +33,48 @@ const sortByStatus: SortRuleExecutor = async (
     .sort((a, b) => (desc ? -1 : 1) * compareByStatus(a.status, b.status))
     // .map(a => {
     //   console.log(a.rem.text + ", " + a.status);
+    //   return a;
+    // })
+    .map(a => a.rem);
+}
+
+const getSlotValue = async (rem: Rem, key: string, plugin: RNPlugin) => {
+  const children = await rem.getChildrenRem();
+  if (children) {
+    for (const rem of children) {
+      const remType = await rem.getType();
+      if (remType != RemType.DESCRIPTOR)
+        continue;
+      const frontText = await plugin.richText.toString(rem.text);
+      if (frontText.trim() == key) {
+        return await plugin.richText.toString(rem.backText!);
+      }
+    }
+  }
+}
+
+const sortBySlot: SortRuleExecutor = async (
+  rems: Rem[],
+  desc: boolean,
+  arg: string,
+  plugin: RNPlugin
+) => {
+  return (await Promise.all(
+    rems.map(async (rem) => {
+      const slotValue = await getSlotValue(rem, arg, plugin);
+      return { rem, slotValue };
+    })))
+    .sort((a, b) => {
+      if (a.slotValue == b.slotValue)
+        return 0;
+      if (!a.slotValue)
+        return 1;
+      if (!b.slotValue)
+        return -1;
+      return (desc ? -1 : 1) * a.slotValue.localeCompare(b.slotValue);
+    })
+    // .map(a => {
+    //   console.log(a.rem.text + ", " + a.slotValue);
     //   return a;
     // })
     .map(a => a.rem);
@@ -56,4 +100,5 @@ const compareByStatus = (
 
 export const sortRuleHandlers = new Map([
   ['byStatus', sortByStatus],
+  ['bySlot', sortBySlot],
 ]);

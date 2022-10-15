@@ -18,16 +18,14 @@ async function onActivate(plugin: ReactRNPlugin) {
     }
   );
 
-  await plugin.app.registerCommand({
-    name: 'test',
-    id: 'test',
-    action: async () => {
-      const focusedRem = await plugin.focus.getFocusedRem();
-      const parentRem = await focusedRem!.getParentRem();
-      const siblings = await parentRem!.getChildrenRem();
-      await plugin.rem.moveRems([focusedRem!], parentRem!, siblings!.length);
-    }
-  });
+  // await plugin.app.registerCommand({
+  //   name: 'test',
+  //   id: 'test',
+  //   action: async () => {
+  //     const focusedRem = await plugin.focus.getFocusedRem();
+  //     console.log(await getPropertyValue(focusedRem!, 'Year', plugin));
+  //   }
+  // });
 
   await plugin.event.addListener(
     AppEvents.FocusedRemChange,
@@ -57,10 +55,11 @@ async function onActivate(plugin: ReactRNPlugin) {
       const sortRuleString = await nextRem.getPowerupProperty('sorted', 'sortRule');
 
       // try execute
-      for (const { byWhat, desc } of parseSortRule(sortRuleString)) {
+      for (const { byWhat, desc, arg } of parseSortRule(sortRuleString)) {
         const handler = sortRuleHandlers.get(byWhat);
+        // console.log(byWhat, desc, arg);
         if (handler) {
-          const sortedRems = await handler(targetRems, desc);
+          const sortedRems = await handler(targetRems, desc, arg, plugin);
           // TODO to be optimized
           // if switch to async call, order will be broken
           // move to a stub rem first will greatly improve the performance
