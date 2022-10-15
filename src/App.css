@@ -1,1 +1,26 @@
 /* Add your plugin styles here. */
+.refresh-button {
+    background-color: #D5DCFF;
+    border-radius: 5px;
+    border: 0.15em #D5DCFF solid;
+    text-align: center;
+    height: 18px;
+    width: 18px;
+    top: 2px;
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.refresh-button .icon {
+    fill: #2156DB;
+}
+
+.refresh-button:hover {
+    opacity: 1;
+    cursor: default;
+}
