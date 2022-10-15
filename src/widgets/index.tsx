@@ -68,6 +68,7 @@ async function onActivate(plugin: ReactRNPlugin) {
           for (const rem of sortedRems)
             await plugin.rem.moveRems([rem], newStubRem, numTargets + i);
           await plugin.rem.moveRems(sortedRems, nextRem, i);
+          await newStubRem.remove();
           break;
         }
       }
