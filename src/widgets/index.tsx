@@ -1,42 +1,57 @@
-import { declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
+import { AppEvents, BuiltInPowerupCodes, declareIndexPlugin, ReactRNPlugin, Rem } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
+import { parseSortRule, sortRuleHandlers } from '../lib/sort-rules';
 
 async function onActivate(plugin: ReactRNPlugin) {
-  // Register settings
-  await plugin.settings.registerStringSetting({
-    id: 'name',
-    title: 'What is your Name?',
-    defaultValue: 'Bob',
-  });
+  await plugin.app.registerPowerup(
+    'Sorted',
+    'sorted',
+    '',
+    {
+      slots: [{
+        code: 'sortRule',
+        name: 'Sort Rule',
+        onlyProgrammaticModifying: false,
+        hidden: false,
+      }]
+    }
+  );
 
-  await plugin.settings.registerBooleanSetting({
-    id: 'pizza',
-    title: 'Do you like pizza?',
-    defaultValue: true,
-  });
+  await plugin.event.addListener(
+    AppEvents.FocusedRemChange,
+    undefined,
+    async ({nextRemId}) => {
 
-  await plugin.settings.registerNumberSetting({
-    id: 'favorite-number',
-    title: 'What is your favorite number?',
-    defaultValue: 42,
-  });
+      const nextRem = await plugin.rem.findOne(nextRemId);
 
-  // A command that inserts text into the editor if focused.
-  await plugin.app.registerCommand({
-    id: 'editor-command',
-    name: 'Editor Command',
-    action: async () => {
-      plugin.editor.insertPlainText('Hello World!');
-    },
-  });
+      if (!nextRem || !await nextRem.hasPowerup('sorted'))
+        return;
 
-  // Show a toast notification to the user.
-  await plugin.app.toast("I'm a toast!");
+      const targetRems = await nextRem.getChildrenRem();
 
-  // Register a sidebar widget.
-  await plugin.app.registerWidget('sample_widget', WidgetLocation.RightSidebar, {
-    dimensions: { height: 'auto', width: '100%' },
+      // ignore leading powerup slots & empty rems
+      let i = 0;
+      for (const targetRem of targetRems) {
+        if (await targetRem.isPowerupSlot()
+          || await targetRem.isPowerupProperty()
+          || (await plugin.richText.toString(targetRem.text)).trim() == '')
+          i += 1;
+        else break;
+      }
+      targetRems.splice(0, i);
+
+      const setIndex = (rem: Rem, index: number) => plugin.rem.moveRems([rem], nextRem, index + i);
+
+      // try to get sort rules from slot
+      const sortRuleString = await nextRem.getPowerupProperty('sorted', 'sortRule');
+      for (const { byWhat, desc } of parseSortRule(sortRuleString)) {
+        const handler = sortRuleHandlers.get(byWhat);
+        if (handler) {
+          handler(targetRems, setIndex, desc);
+          break;
+        }
+      }
   });
 }
 
