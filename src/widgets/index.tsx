@@ -63,8 +63,11 @@ async function onActivate(plugin: ReactRNPlugin) {
           const sortedRems = await handler(targetRems, desc);
           // TODO to be optimized
           // if switch to async call, order will be broken
+          // move to a stub rem first will greatly improve the performance
+          const newStubRem = (await plugin.rem.createRem())!;
           for (const rem of sortedRems)
-            await plugin.rem.moveRems([rem], nextRem, numTargets + i);
+            await plugin.rem.moveRems([rem], newStubRem, numTargets + i);
+          await plugin.rem.moveRems(sortedRems, nextRem, i);
           break;
         }
       }

@@ -1,7 +1,7 @@
 import { Rem } from '@remnote/plugin-sdk';
 
 export const parseSortRule = (sortRuleString: string) => {
-  return sortRuleString.split(',')
+  return sortRuleString.split(';')
     .map(r => r.match(/([^+-]+)([+-]?)/))
     .flatMap(match => {
       return match && match[1] ? {
@@ -14,7 +14,7 @@ export const parseSortRule = (sortRuleString: string) => {
 export type SortRuleExecutor = (
   rems: Rem[],
   desc: boolean,
-  args?: string[]
+  args?: string
 ) => Rem[] | Promise<Rem[]>;
 
 const sortByStatus: SortRuleExecutor = async (
@@ -29,10 +29,10 @@ const sortByStatus: SortRuleExecutor = async (
       return { rem, status };
     })))
     .sort((a, b) => (desc ? -1 : 1) * compareByStatus(a.status, b.status))
-    .map(a => {
-      console.log(a.rem.text + ", " + a.status);
-      return a;
-    })
+    // .map(a => {
+    //   console.log(a.rem.text + ", " + a.status);
+    //   return a;
+    // })
     .map(a => a.rem);
 }
 
