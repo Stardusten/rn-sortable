@@ -18,6 +18,17 @@ async function onActivate(plugin: ReactRNPlugin) {
     }
   );
 
+  await plugin.app.registerCommand({
+    name: 'test',
+    id: 'test',
+    action: async () => {
+      const focusedRem = await plugin.focus.getFocusedRem();
+      const parentRem = await focusedRem!.getParentRem();
+      const siblings = await parentRem!.getChildrenRem();
+      await plugin.rem.moveRems([focusedRem!], parentRem!, siblings!.length);
+    }
+  });
+
   await plugin.event.addListener(
     AppEvents.FocusedRemChange,
     undefined,
@@ -29,6 +40,7 @@ async function onActivate(plugin: ReactRNPlugin) {
         return;
 
       const targetRems = await nextRem.getChildrenRem();
+      const numTargets = targetRems.length;
 
       // ignore leading powerup slots & empty rems
       let i = 0;
@@ -41,14 +53,18 @@ async function onActivate(plugin: ReactRNPlugin) {
       }
       targetRems.splice(0, i);
 
-      const setIndex = (rem: Rem, index: number) => plugin.rem.moveRems([rem], nextRem, index + i);
-
       // try to get sort rules from slot
       const sortRuleString = await nextRem.getPowerupProperty('sorted', 'sortRule');
+
+      // try execute
       for (const { byWhat, desc } of parseSortRule(sortRuleString)) {
         const handler = sortRuleHandlers.get(byWhat);
         if (handler) {
-          handler(targetRems, setIndex, desc);
+          const sortedRems = await handler(targetRems, desc);
+          // TODO to be optimized
+          // if switch to async call, order will be broken
+          for (const rem of sortedRems)
+            await plugin.rem.moveRems([rem], nextRem, numTargets + i);
           break;
         }
       }

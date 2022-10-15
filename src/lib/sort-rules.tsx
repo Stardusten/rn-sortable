@@ -13,17 +13,15 @@ export const parseSortRule = (sortRuleString: string) => {
 
 export type SortRuleExecutor = (
   rems: Rem[],
-  setIndex: (rem: Rem, newIndex: number) => void | Promise<void>,
   desc: boolean,
   args?: string[]
-) => void | Promise<void>;
+) => Rem[] | Promise<Rem[]>;
 
 const sortByStatus: SortRuleExecutor = async (
   rems: Rem[],
-  setIndex: (rem: Rem, newIndex: number) => void | Promise<void>,
   desc: boolean
 ) => {
-  (await Promise.all(
+  return (await Promise.all(
     rems.map(async (rem) => {
       const status = await rem.isTodo()
         ? await rem.getTodoStatus()
@@ -31,8 +29,11 @@ const sortByStatus: SortRuleExecutor = async (
       return { rem, status };
     })))
     .sort((a, b) => (desc ? -1 : 1) * compareByStatus(a.status, b.status))
-    .map(a => a.rem)
-    .forEach((rem, index) => setIndex(rem, index));
+    .map(a => {
+      console.log(a.rem.text + ", " + a.status);
+      return a;
+    })
+    .map(a => a.rem);
 }
 
 const compareByStatus = (
