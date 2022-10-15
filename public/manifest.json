@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
-  "id": "Sortable",
-  "name": "Sortable",
+  "id": "rn-sortable",
+  "name": "RN Sortable",
   "author": "Stardust",
   "repoUrl": "https://github.com/Stardusten/rn-sortable",
   "version": {
@@ -16,7 +16,7 @@
   "requiredScopes": [
     {
       "type": "All",
-      "level": "Read"
+      "level": "ReadCreateModifyDelete"
     }
   ]
 }

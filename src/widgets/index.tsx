@@ -18,20 +18,20 @@ async function onActivate(plugin: ReactRNPlugin) {
     }
   );
 
-  // await plugin.app.registerCommand({
-  //   name: 'test',
-  //   id: 'test',
-  //   action: async () => {
-  //     const focusedRem = await plugin.focus.getFocusedRem();
-  //     console.log(await getPropertyValue(focusedRem!, 'Year', plugin));
-  //   }
-  // });
+  await plugin.app.registerCommand({
+    name: 'test',
+    id: 'test',
+    action: async () => {
+      const focusedRem = await plugin.focus.getFocusedRem();
+      const fontText = await plugin.richText.toString(focusedRem!.text);
+      console.log(fontText);
+    }
+  });
 
   await plugin.app.registerWidget(
     'refresh',
     WidgetLocation.RightSideOfEditor,
     {
-      powerupFilter: 'sorted',
       dimensions: {
         width: 'auto',
         height: 'auto',

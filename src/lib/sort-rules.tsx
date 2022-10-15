@@ -71,7 +71,7 @@ const sortBySlot: SortRuleExecutor = async (
         return 1;
       if (!b.slotValue)
         return -1;
-      return (desc ? -1 : 1) * a.slotValue.localeCompare(b.slotValue);
+      return (desc ? 1 : -1) * a.slotValue.localeCompare(b.slotValue);
     })
     // .map(a => {
     //   console.log(a.rem.text + ", " + a.slotValue);
