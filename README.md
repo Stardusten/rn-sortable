@@ -4,6 +4,9 @@ A plugin that allows you to sort all child rems of a rem using custom rule in Re
 
 ![image](https://user-images.githubusercontent.com/38722307/195976177-3078488a-c7d1-4b84-96ec-27b71a26d412.png)
 
+![image](https://user-images.githubusercontent.com/38722307/195976875-0f78dd89-b3c7-4581-886c-f52c34735f54.png)
+
+
 # About Sort Rules
 
 | Syntax | Description |
