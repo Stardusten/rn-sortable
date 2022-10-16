@@ -7,12 +7,12 @@
   "version": {
     "major": 0,
     "minor": 0,
-    "patch": 1
+    "patch": 2
   },
   "theme": [],
   "enableOnMobile": false,
   "description": "A plugin that allows you to sort rems in RemNote.",
-  "requestNative": false,
+  "requestNative": true,
   "requiredScopes": [
     {
       "type": "All",

@@ -1,5 +1,14 @@
-import { renderWidget, usePlugin, useRunAsync, useTracker, WidgetLocation } from '@remnote/plugin-sdk';
-import { parseSortRule, sortRuleHandlers } from '../lib/sort-rules';
+import {
+  Rem,
+  RemType,
+  renderWidget,
+  RNPlugin,
+  usePlugin,
+  useRunAsync,
+  useTracker,
+  WidgetLocation,
+} from '@remnote/plugin-sdk';
+import { parseSortRule } from '../lib/sort-rules';
 
 export const RefreshButton = () => {
 
@@ -7,26 +16,124 @@ export const RefreshButton = () => {
 
   const rem = useTracker(async (reactivePlugin) => {
     const context = await reactivePlugin.widget.getWidgetContext<WidgetLocation.RightSideOfEditor>();
-    return await reactivePlugin.rem.findOne(context.remId);
+    return context && await reactivePlugin.rem.findOne(context.remId);
   });
 
   const parentRem = useRunAsync(async () => await rem?.getParentRem(), [rem]);
 
   const frontText = useTracker(async (reactivePlugin) => {
     const text = rem?.text;
-    console.log(text);
     return text && await reactivePlugin.richText.toString(text);
   }, [rem]);
+
+  const getSlotValue = async (rem: Rem, key: string) => {
+    const children = await rem.getChildrenRem();
+    if (children) {
+      for (const rem of children) {
+        const remType = await rem.getType();
+        if (remType != RemType.DESCRIPTOR)
+          continue;
+        const frontText = await plugin.richText.toString(rem.text);
+        if (frontText.trim() == key) {
+          return await plugin.richText.toString(rem.backText!);
+        }
+      }
+    }
+  }
+
+  const compareByStatus = (
+    objA: { status: 'Finished' | 'Unfinished' | undefined },
+    objB: { status: 'Finished' | 'Unfinished' | undefined }
+  ) => {
+      const statusA = objA.status;
+      const statusB = objB.status;
+      let ret;
+      if (!statusA && !statusB)
+        ret = 0;
+      else if (!statusA && statusB)
+        ret = 1;
+      else if (statusA && !statusB)
+        ret = -1;
+      else if (statusA == statusB)
+        ret = 0;
+      else if (statusA == 'Unfinished')
+        ret = -1;
+      else ret = 1;
+      return ret;
+    }
+
+  const compareByText = (
+    objA: { remText: string },
+    objB: { remText: string }
+  ) => {
+      return objA.remText.localeCompare(objB.remText);
+    }
+
+  const compareBySlotValue = (
+    objA: { slotValue: string },
+    objB: { slotValue: string }
+  ) => {
+      const slotValueA = objA.slotValue;
+      const slotValueB = objB.slotValue;
+      let ret;
+      if (slotValueA == slotValueB)
+        ret = 0.0;
+      else if (!slotValueA)
+        ret = 1.0;
+      else if (!slotValueB)
+        ret = 2.0;
+      else ret = slotValueA.localeCompare(slotValueB);
+      return ret;
+    }
+
+  const comparators = {
+    byStatus: compareByStatus,
+    byText: compareByText,
+    bySlotValue: compareBySlotValue,
+  }
+
+  const statusFetcher = async (objs: { rem: Rem }[]) => {
+    return await Promise.all(objs.map(async obj => {
+      const rem = obj.rem;
+      const status = await rem.isTodo()
+        ? await rem.getTodoStatus()
+        : undefined;
+      return { ...obj, status };
+    }));
+  }
+
+  const remTextFetcher = async (objs: { rem: Rem }[]) => {
+    return await Promise.all(objs.map(async obj => {
+      const remText = await plugin.richText.toString(obj.rem.text);
+      return { ...obj, remText: remText.trim() };
+    }));
+  }
+
+  const slotValueFetcher = async (objs: { rem: Rem }[], slotName: string) => {
+    return await Promise.all(objs.map(async obj => {
+      const rem = obj.rem;
+      const slotValue = await getSlotValue(rem, slotName);
+      return { ...obj, slotValue };
+    }))
+  }
+
+  const fetchers = {
+    byStatus: statusFetcher,
+    byText: remTextFetcher,
+    bySlotValue: slotValueFetcher,
+  };
 
   return frontText == 'Sort Rule' ?
     <div
       className="refresh-button"
       onClick={ async () => {
+
         if (!parentRem || !await parentRem.hasPowerup('sorted'))
           return;
 
         const targetRems = await parentRem.getChildrenRem();
-        const numTargets = targetRems.length;
+        let targets: any[] = targetRems.map(rem => { return { rem }});
+        const numTargets = targets.length;
 
         // ignore leading powerup slots & empty rems
         let i = 0;
@@ -38,28 +145,42 @@ export const RefreshButton = () => {
             i += 1;
           else break;
         }
-        targetRems.splice(0, i);
+        targets.splice(0, i);
 
         // try to get sort rules from slot
         const sortRuleString = await parentRem.getPowerupProperty('sorted', 'sortRule');
 
-        // try execute
-        for (const { byWhat, desc, arg } of parseSortRule(sortRuleString)) {
-          const handler = sortRuleHandlers.get(byWhat);
-          // console.log(byWhat, desc, arg);
-          if (handler) {
-            const sortedRems = await handler(targetRems, desc, arg, plugin);
-            // TODO to be optimized
-            // if switch to async call, order will be broken
-            // move to a stub rem first will greatly improve the performance
-            const newStubRem = (await plugin.rem.createRem())!;
-            for (const rem of sortedRems)
-              await plugin.rem.moveRems([rem], newStubRem, numTargets + i);
-            await plugin.rem.moveRems(sortedRems, parentRem, i);
-            await newStubRem.remove();
-            break;
+        const sortRules = parseSortRule(sortRuleString);
+
+        // fetch all the required data
+        const requiredComparators: any[] = [];
+        for (const { byWhat, arg } of sortRules) {
+          const fetcher = (fetchers as any)[byWhat];
+          const comparator = (comparators as any)[byWhat];
+          if (fetcher && comparator) {
+            targets = await fetcher(targets, arg);
+            requiredComparators.push(comparator);
           }
         }
+
+        // sort
+        targets.sort((objA, objB) => {
+          let finalResult = 0.0;
+          for (const comparator of requiredComparators) {
+            finalResult = comparator(objA, objB);
+            if (finalResult != 0.0)
+              break;
+          }
+          return finalResult;
+        });
+
+        const tempRem = await plugin.rem.createRem();
+        if (!tempRem) return;
+        const sortedRems = targets.map(obj => obj.rem);
+        for (const rem of sortedRems)
+          await plugin.rem.moveRems([rem], tempRem, numTargets + i);
+        await plugin.rem.moveRems(sortedRems, parentRem, i);
+        await tempRem.remove();
       }}
     >
       <svg t="1665817435338" className="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"

@@ -1,6 +1,7 @@
-import { declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
+import { AppEvents, declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
+import { parseSortRule, sortRuleHandlers } from '../lib/sort-rules';
 
 async function onActivate(plugin: ReactRNPlugin) {
 
@@ -18,26 +19,17 @@ async function onActivate(plugin: ReactRNPlugin) {
     }
   );
 
-  await plugin.app.registerCommand({
-    name: 'test',
-    id: 'test',
-    action: async () => {
-      const focusedRem = await plugin.focus.getFocusedRem();
-      const fontText = await plugin.richText.toString(focusedRem!.text);
-      console.log(fontText);
-    }
-  });
-
   await plugin.app.registerWidget(
     'refresh',
     WidgetLocation.RightSideOfEditor,
     {
+      powerupFilter: undefined,
       dimensions: {
-        width: 'auto',
+        width: '22px',
         height: 'auto',
       }
     }
-  )
+  );
 }
 
 async function onDeactivate(_: ReactRNPlugin) {}
