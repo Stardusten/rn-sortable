@@ -1,7 +1,6 @@
 import { AppEvents, declareIndexPlugin, ReactRNPlugin, WidgetLocation } from '@remnote/plugin-sdk';
 import '../style.css';
 import '../App.css';
-import { parseSortRule, sortRuleHandlers } from '../lib/sort-rules';
 
 async function onActivate(plugin: ReactRNPlugin) {
 

@@ -171,11 +171,11 @@ export const RefreshButton = () => {
           return finalResult;
         });
 
+        const sortedRems = targets.map(obj => obj.rem);
         const tempRem = await plugin.rem.createRem();
         if (!tempRem) return;
-        const sortedRems = targets.map(obj => obj.rem);
         for (const rem of sortedRems)
-          await plugin.rem.moveRems([rem], tempRem, numTargets + i);
+          await rem.setParent(tempRem);
         await plugin.rem.moveRems(sortedRems, parentRem, i);
         await tempRem.remove();
       }}
