@@ -153,21 +153,18 @@ export const RefreshButton = () => {
         const sortRules = parseSortRule(sortRuleString);
 
         // fetch all the required data
-        const requiredComparators: any[] = [];
         for (const { byWhat, arg } of sortRules) {
           const fetcher = (fetchers as any)[byWhat];
-          const comparator = (comparators as any)[byWhat];
-          if (fetcher && comparator) {
+          if (fetcher)
             targets = await fetcher(targets, arg);
-            requiredComparators.push(comparator);
-          }
         }
 
         // sort
         targets.sort((objA, objB) => {
           let finalResult = 0.0;
-          for (const comparator of requiredComparators) {
-            finalResult = comparator(objA, objB);
+          for (const { byWhat, desc } of sortRules) {
+            const comparator = (comparators as any)[byWhat];
+            finalResult = (desc ? -1.0 : 1.0) * comparator(objA, objB);
             if (finalResult != 0.0)
               break;
           }
