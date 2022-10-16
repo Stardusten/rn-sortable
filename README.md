@@ -14,5 +14,6 @@ A plugin that allows you to sort all child rems of a rem using custom rule in Re
 | `byStatus` | Unfinished Todos --> Finished Todos --> Other Rems |
 | `byStatus+` | The same as `byStatus` |
 | `byStatus-` | Contrary to `byStatus+` |
-| `bySlot(Rating)` |  Sort by rating (specify like "Rating ;; 10"), in **ascending** order |
-| `bySlot(Rating)-` | Sort by rating (specify like "Rating ;; 10"), in **descending** order |
+| `bySlotValue(Rating)` |  Sort by rating (specify like "Rating ;; 10"), in **ascending** order |
+| `bySlotValue(Rating)-` | Sort by rating (specify like "Rating ;; 10"), in **descending** order |
+| `byStatus, byText` | Sort by status first. If equal, sort by text next. | 
